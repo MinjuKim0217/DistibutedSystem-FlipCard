@@ -53,7 +53,7 @@ public class Login {
 		
 		JLabel lblUsername = new JLabel("Username");
 		lblUsername.setFont(new Font("Franklin Gothic Medium Cond", Font.BOLD, 25));
-		lblUsername.setBounds(182, 283, 164, 45);
+		lblUsername.setBounds(192, 280, 164, 45);
 		frame.getContentPane().add(lblUsername);
 		
 		username = new JTextField();
@@ -77,13 +77,13 @@ public class Login {
 		
 		JPanel panel = new JPanel();
 		panel.setBackground(new Color(255, 255, 204));
-		panel.setBounds(316, 105, 174, 138);
+		panel.setBounds(316, 99, 174, 138);
 		frame.getContentPane().add(panel);
 		panel.setLayout(null);
 		
 		JLabel lblShowimages = new JLabel("show-images");
 		lblShowimages.setIcon(new ImageIcon("C:\\Users\\82105\\Downloads\\\uADF8\uB9BC1.png"));
-		lblShowimages.setBounds(12, 0, 150, 138);
+		lblShowimages.setBounds(12, 10, 150, 138);
 		panel.add(lblShowimages);
 		
 		JLabel lblKonkukCardGame = new JLabel("KonKuk Card Game");
