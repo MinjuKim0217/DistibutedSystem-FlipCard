@@ -12,84 +12,154 @@ import javax.swing.ImageIcon;
 import java.awt.Font;
 import java.awt.Color;
 import java.awt.SystemColor;
+import javax.swing.SwingConstants;
+import kr.ac.konkuk.ccslab.cm.stub.CMClientStub;
+import kr.ac.konkuk.ccslab.cm.entity.CMGroup;
+import kr.ac.konkuk.ccslab.cm.entity.CMGroupInfo;
+import kr.ac.konkuk.ccslab.cm.entity.CMList;
+import kr.ac.konkuk.ccslab.cm.entity.CMMember;
+import kr.ac.konkuk.ccslab.cm.entity.CMMessage;
+import kr.ac.konkuk.ccslab.cm.entity.CMPosition;
+import kr.ac.konkuk.ccslab.cm.entity.CMRecvFileInfo;
+import kr.ac.konkuk.ccslab.cm.entity.CMSendFileInfo;
+import kr.ac.konkuk.ccslab.cm.entity.CMServer;
+import kr.ac.konkuk.ccslab.cm.entity.CMSession;
+import kr.ac.konkuk.ccslab.cm.entity.CMSessionInfo;
+import kr.ac.konkuk.ccslab.cm.entity.CMUser;
+import kr.ac.konkuk.ccslab.cm.event.CMBlockingEventQueue;
+import kr.ac.konkuk.ccslab.cm.event.CMDummyEvent;
+import kr.ac.konkuk.ccslab.cm.event.CMEvent;
+import kr.ac.konkuk.ccslab.cm.event.CMFileEvent;
+import kr.ac.konkuk.ccslab.cm.event.CMInterestEvent;
+import kr.ac.konkuk.ccslab.cm.event.CMSessionEvent;
+import kr.ac.konkuk.ccslab.cm.event.CMUserEvent;
+import kr.ac.konkuk.ccslab.cm.info.CMCommInfo;
+import kr.ac.konkuk.ccslab.cm.info.CMConfigurationInfo;
+import kr.ac.konkuk.ccslab.cm.info.CMFileTransferInfo;
+import kr.ac.konkuk.ccslab.cm.info.CMInfo;
+import kr.ac.konkuk.ccslab.cm.info.CMInteractionInfo;
+import kr.ac.konkuk.ccslab.cm.manager.CMConfigurator;
+import kr.ac.konkuk.ccslab.cm.manager.CMEventManager;
+import kr.ac.konkuk.ccslab.cm.manager.CMFileTransferManager;
+import kr.ac.konkuk.ccslab.cm.manager.CMMqttManager;
+
 
 public class Login {
 
-	private JFrame frame;
-	private JTextField username;
+   private CMClientStub m_clientStub;
+   private FlipCardClientEventHandler m_eventHandler;
+   
+   public JFrame frmFlipCard;
+   private JTextField username;
+   CMSessionEvent loginAckEvent=null; //
+   static boolean loginSendcheck = false;
 
-	/**
-	 * Launch the application.
-	 */
-	public static void main(String[] args) {
-		EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				try {
-					Login window = new Login();
-					window.frame.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		});
-	}
+   
+   public CMClientStub getClientStub()
+   {
+      return m_clientStub;
+   }
+   
+   public FlipCardClientEventHandler getClientEventHandler()
+   {
+      return m_eventHandler;
+   }
 
-	/**
-	 * Create the application.
-	 */
-	public Login() {
-		initialize();
-	}
+   /**
+    * Launch the application.
+    */
+   /*public static void main(String[] args) {
+      EventQueue.invokeLater(new Runnable() {
+         public void run() {
+            try {
+               Login window = new Login();
+               window.frmFlipCard.setVisible(true);
+            } catch (Exception e) {
+               e.printStackTrace();
+            }
+         }
+      });
+   }
 
-	/**
-	 * Initialize the contents of the frame.
-	 */
-	private void initialize() {
-		frame = new JFrame();
-		frame.getContentPane().setBackground(new Color(255, 255, 204));
-		frame.setBounds(100, 100, 794, 546);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.getContentPane().setLayout(null);
-		
-		JLabel lblUsername = new JLabel("Username");
-		lblUsername.setFont(new Font("Franklin Gothic Medium Cond", Font.BOLD, 25));
-		lblUsername.setBounds(192, 280, 164, 45);
-		frame.getContentPane().add(lblUsername);
-		
-		username = new JTextField();
-		username.setBounds(386, 285, 228, 45);
-		frame.getContentPane().add(username);
-		username.setColumns(10);
-		
-		JButton btnLogin = new JButton("Login");
-		btnLogin.setFont(new Font("Franklin Gothic Demi", Font.BOLD, 18));
-		btnLogin.setForeground(new Color(255, 255, 255));
-		btnLogin.setBackground(new Color(0, 100, 0));
-		btnLogin.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				String uname=username.getText();
-				JOptionPane.showMessageDialog(frame, "Login done successfully");
-				
-			}
-		});
-		btnLogin.setBounds(280, 390, 191, 45);
-		frame.getContentPane().add(btnLogin);
-		
-		JPanel panel = new JPanel();
-		panel.setBackground(new Color(255, 255, 204));
-		panel.setBounds(316, 99, 174, 138);
-		frame.getContentPane().add(panel);
-		panel.setLayout(null);
-		
-		JLabel lblShowimages = new JLabel("show-images");
-		lblShowimages.setIcon(new ImageIcon("C:\\Users\\82105\\Downloads\\\uADF8\uB9BC1.png"));
-		lblShowimages.setBounds(12, 10, 150, 138);
-		panel.add(lblShowimages);
-		
-		JLabel lblKonkukCardGame = new JLabel("KonKuk Card Game");
-		lblKonkukCardGame.setForeground(new Color(0, 100, 0));
-		lblKonkukCardGame.setFont(new Font("Franklin Gothic Heavy", Font.BOLD, 32));
-		lblKonkukCardGame.setBounds(253, 25, 386, 70);
-		frame.getContentPane().add(lblKonkukCardGame);
-	}
+   /**
+    * Create the application.
+    */
+   public Login() {
+      m_clientStub = new CMClientStub();
+      m_eventHandler = new FlipCardClientEventHandler();
+      
+      initialize();
+   }
+
+   /**
+    * Initialize the contents of the frame.
+    */
+   private void initialize() {
+	 
+      frmFlipCard = new JFrame();
+      frmFlipCard.setTitle("Flip Card");
+      frmFlipCard.getContentPane().setBackground(Color.WHITE);
+      frmFlipCard.setBounds(100, 100, 791, 528);
+      frmFlipCard.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+      frmFlipCard.getContentPane().setLayout(null);
+      
+      username = new JTextField();
+      username.setHorizontalAlignment(SwingConstants.CENTER);
+      username.setBackground(SystemColor.inactiveCaptionBorder);
+      username.setBounds(309, 305, 156, 35);
+      frmFlipCard.getContentPane().add(username);
+      username.setColumns(10);
+      
+      
+      
+      JButton btnLogin = new JButton("Login");
+      btnLogin.setFont(new Font("Franklin Gothic Demi", Font.BOLD, 18));
+      btnLogin.setForeground(new Color(255, 255, 255));
+      btnLogin.setBackground(new Color(3, 84, 39));
+      btnLogin.addActionListener(new ActionListener() {
+         public void actionPerformed(ActionEvent e) {
+            String uname=username.getText();
+              //String pass = "anypass";
+              //loginSendcheck = m_clientStub.loginCM(uname, uname);
+              loginAckEvent=m_clientStub.syncLoginCM(uname, "");//동기적으로 이벤트 받아옴
+              //loginSendcheck - 로그인 요청을 잘 보냈을 경우 true, 아니면 false
+              //이 변수 이용해서 로그인 요청 보냈는지 확인하는 구문
+              
+              //이걸 동기식으로 바꿀까?->바꿨어
+              //로그인 실패하면 어떡해?
+              
+            JOptionPane.showMessageDialog(frmFlipCard, "로그인이 완료되었습니다.");
+            
+            //이벤트 핸들러 기다림(?)
+           // User getUsername =new User();
+           // getUsername.GetMyuserColor(uname);
+            //Maingame frame = new Maingame(); //maingame 창 띄움
+             //frame.setVisible(true);
+             frmFlipCard.setVisible(false); //Login창 닫음.
+         }
+      });
+      btnLogin.setBounds(309, 391, 149, 45);
+      frmFlipCard.getContentPane().add(btnLogin);
+      
+      JLabel lblKonkukCardGame = new JLabel("KonKuk Flip Card");
+      lblKonkukCardGame.setHorizontalAlignment(SwingConstants.CENTER);
+      lblKonkukCardGame.setForeground(new Color(77, 77, 77));
+      lblKonkukCardGame.setFont(new Font("Showcard Gothic", Font.BOLD, 52));
+      lblKonkukCardGame.setBounds(126, 10, 522, 100);
+      frmFlipCard.getContentPane().add(lblKonkukCardGame);
+      
+      JLabel lblShowimages = new JLabel("");
+      lblShowimages.setBounds(222, 78, 331, 317);
+      frmFlipCard.getContentPane().add(lblShowimages);
+      lblShowimages.setIcon(new ImageIcon("../FlipCard/Img/Login.png"));
+   }
+   
+   public String GetLoginID() {
+      return username.getText();
+   }
+
+   public Object Login() {
+      // TODO Auto-generated method stub
+      return null;
+   }
 }
