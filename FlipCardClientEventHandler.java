@@ -1,199 +1,174 @@
-import java.util.Iterator;
-
+//FlipCardClientEventHandler
 import javax.swing.ImageIcon;
+import javax.swing.JFrame;
 import javax.swing.JOptionPane;
-
-import kr.ac.konkuk.ccslab.cm.entity.CMGroup;
-import kr.ac.konkuk.ccslab.cm.entity.CMGroupInfo;
-import kr.ac.konkuk.ccslab.cm.entity.CMMember;
-import kr.ac.konkuk.ccslab.cm.entity.CMSessionInfo;
-import kr.ac.konkuk.ccslab.cm.entity.CMUser;
-import kr.ac.konkuk.ccslab.cm.event.CMDataEvent;
 import kr.ac.konkuk.ccslab.cm.event.CMDummyEvent;
 import kr.ac.konkuk.ccslab.cm.event.CMEvent;
 import kr.ac.konkuk.ccslab.cm.event.CMSessionEvent;
 import kr.ac.konkuk.ccslab.cm.event.handler.CMAppEventHandler;
 import kr.ac.konkuk.ccslab.cm.info.CMInfo;
-import kr.ac.konkuk.ccslab.cm.info.CMInteractionInfo;
-import kr.ac.konkuk.ccslab.cm.stub.CMClientStub;
 
 public class FlipCardClientEventHandler implements CMAppEventHandler {
-	private CMClientStub m_clientStub;
-	private FlipCardClient m_client;
-	Maingame game = new Maingame();
-	
 
-	public void getClientEventHandler(CMClientStub stub, FlipCardClient client) {
-		m_client = client;
-		m_clientStub = stub;
-	}
+   public JFrame loginack;
+   private FlipCardClient m_client;
+   Maingame game;
+   
+   public FlipCardClientEventHandler(FlipCardClient client) {
+      m_client = client;
+      game = new Maingame(m_client);
+      loginack = new JFrame();      
+   }
 
-	public void processEvent(CMEvent cme) {
-		// TODO Auto-generated method stub
-		// System.out.println("processEvent: Client app receives CM event!!");
-		switch (cme.getType()) {
-		case CMInfo.CM_DUMMY_EVENT:
-			ReceiveprocessDummyEvent(cme);
-			break;
-		case CMInfo.CM_SESSION_EVENT:
-			processSessionEvent(cme);
+   @Override
+   public void processEvent(CMEvent cme) {
+      switch (cme.getType()) {
+      case CMInfo.CM_SESSION_EVENT: //event for login, chatting
+         processSessionEvent(cme);
+         break;
+      case CMInfo.CM_DUMMY_EVENT: //event for message protocol
+         processDummyEvent(cme);
+         break;
+      default:
+         return;
+      }
+   }
 
-		default:
-			break;
-		}
-	}
+   private void processSessionEvent(CMEvent cme) {
 
-	private void ReceiveprocessDummyEvent(CMEvent cme) {
-		CMDummyEvent cde = (CMDummyEvent) cme; // 서버에게서 받는
-		String message = cde.getDummyInfo();
-		String[] splitMsg = message.split(";");
-		String choice = splitMsg[0];
-		User MyUser = new User();
-		CMUser CUser=new CMUser();
-		switch (choice) {
-		case "LOGIN":
-			String UserID = splitMsg[1];
-			String Color = splitMsg[2];
-			
-			//FlipCardClient newgame = new FlipCardClient();
-			MyUser.ChangeCurrentUser(UserID, Color);
-			// newgame.FlipCardClientGame();
+      CMSessionEvent se = (CMSessionEvent) cme;
+      switch (se.getID()) {
+      case CMSessionEvent.LOGIN_ACK: //login acknowledge
+           if(se.isValidUser() == 0)
+         {
+            JOptionPane.showMessageDialog(loginack, "로그인에 실패했습니다.");
+         }
+         else if(se.isValidUser() == -1)
+         {
+            JOptionPane.showMessageDialog(loginack, "이미 로그인한 사용자입니다.");
+         }
+         else
+         {
+            JOptionPane.showMessageDialog(loginack, "로그인이 완료되었습니다.");
+            game.setLocationRelativeTo(null); 
+            game.setVisible(true); //start Maingame
+         }
+         break;
+      case CMSessionEvent.SESSION_TALK: //chatting event
+         game.printMessage("[" + se.getUserName() + "]" + se.getTalk() + "\n");
+         break;
+      default:
+         return;
+      }
 
-			// 메인게임 불러오기-연결만
-			if(UserID==CUser.getName()) {
-				MyUser.GetMyuserColor(UserID);
-				FlipCardClient changeflag = new FlipCardClient();
-				changeflag.openflag = true;
-				Maingame frame = new Maingame(); //maingame 창 띄움
-	             frame.setVisible(true);
-			}
-			
-			
-		case "START":
-			game.init();
-			game.startflag = true;
-			// 카드 초기화
-			// 시간 10초로 보여짐
+   }
 
-		case "FLIP":
-			int Color1 = 0;
-			switch (splitMsg[2]) {
-			case "BROWN":
-				Color1 = 1;
-				break;
-			case "BLUE":
-				Color1 = 2;
-				break;
-			case "PINK":
-				Color1 = 3;
-				break;
-			case "GREEN":
-				Color1 = 4;
-				break;
-			}
-			game.ChangeColor(Color1, Integer.parseInt(splitMsg[1]));
-			// 카드 변경
-		case "STOP":
-			game.startflag = false;
-			// 시간 0초로 보여짐
-			// 카드 초기화
-			// 클라측 이벤트 핸들러 중단
-		case "WIN":
-			// 채팅창에 표시
+   private void processDummyEvent(CMEvent cme) {
 
-		}
+      CMDummyEvent cde = (CMDummyEvent) cme; // 서버에게서 받는
+      String message = cde.getDummyInfo();
+      String[] splitMsg = message.split(";");
+      String choice = splitMsg[0];
+      User MyUser = new User();
 
-	}
+      switch (choice) {
+      case "LOGIN":
+         String UserID = splitMsg[1];
+         String Color = splitMsg[2];
+         MyUser.ChangeCurrentUser(UserID, Color);
+         game.resettext();
+         if (UserID.equals(User.myname)) { // 내 색상 지정.
+            MyUser.GetMyuserColor(UserID);
+         }
+         break;
 
-	private void sendprocessDummyEvent(int CardNum) {
-		// Client 측 전송 Flip;CARDNUM;COLOR
-		CMDummyEvent due = new CMDummyEvent();// 서버에게 주는
-		User MyUser = new User();
-		if (game.startflag) {
-			due.setDummyInfo(MakeFlip(CardNum, MyUser.GetMyColor()));
-			m_clientStub.send(due, "SERVER");
-		}
-	}
-	
-	public void processSessionEvent(CMEvent cme) {
-		CMSessionEvent se=(CMSessionEvent) cme;
-		switch(se.getID()) {
-		case CMSessionEvent.LOGIN_ACK:
-			if(se.isValidUser()==0) {
-				System.err.println("client failed to login");
-				//Login.loginSendcheck=false;
-				m_clientStub.terminateCM();
-				
-			}
-			
-			else if(se.isValidUser()==-1) {
-				System.err.println("already exist!");
-			
-				
-			}
-			else {
-				System.out.println("login complete!");
-				//m_client.FlipCardClientGame(m_clientStub);
-				//Login.loginSendcheck=true;
-				//FlipCardClient id=new FlipCardClient();
-				
-				//User newuser=new User();
-				//newuser.GetMyuserColor(m_client.uname);
-				
-				
-				}
-			break;
-		default:
-			return;
-		}
-		
-	}
-	
-	
-	private void processDataEvent(CMEvent cme) {
-		CMDataEvent de = (CMDataEvent) cme;
-		switch (de.getID()) {
-		case CMDataEvent.NEW_USER:
-			printMessage("[" + de.getUserName() + "] 의 사용자가 들어왔습니다..", "Chat");
-			// printMessage(count+"", "Info");
+      case "READY":
+         game.printMessage("[공지] 게임이 곧 시작합니다. \n");
+         break;
 
-			break;
-		case CMDataEvent.REMOVE_USER:
-			// printMessage("["+de.getUserName()+"] leaves group("+de.getHandlerGroup()+")
-			// in session("
-			// +de.getHandlerSession()+").");
-			printMessage("[" + de.getUserName() + "] 의 사용자가 나갔습니다.", "Chat");
-			// printMessage(count+"", "Info");
-			break;
-		default:
-			return;
-		}
-	}
+      case "START":
+         game.Timershow.setText("START");
+         game.init(); // 카드 초기화
+         game.setstartflag(true);
+         break;
+         
+      case "FLIP":
+         ChangeColor(Integer.parseInt(splitMsg[1]),splitMsg[2]);// 카드 변경
+         break;
+         
+      case "STOP":
+         game.setstartflag(false); //게임 중단.
+         game.init(); // 카드 초기화
+         break;
+         
+      case "TIMER":
+            game.Timershow.setText(splitMsg[1]);
+         break;
 
-	private void printMessage(String strText, String type) {
-		// m_client.printMessage(strText, type);
+      case "WIN":
+         game.printMessage("[공지]결과 출력\n");
+         String winner=splitMsg[2];
+         switch(winner) {
+         case "BROWN":
+            game.printMessage(splitMsg[1]+" WIN! \n");
+            break;
+         case "BLUE":
+            game.printMessage(splitMsg[1]+" WIN! \n");
+            break;
+         case "PINK":
+            game.printMessage(splitMsg[1]+" WIN! \n");
+            break;
+         case "GREEN":
+            game.printMessage(splitMsg[1]+" WIN! \n");
+            break;
+         }
+         Isregame();
+         break;
 
-		return;
-	}
+      }
 
-	private String MakeFlip(int CardNum, int indexofColor) {
-		String Color = null;
-		switch (indexofColor) {
-		case 1:
-			Color = "BROWN";
-			break;
-		case 2:
-			Color = "BLUE";
-			break;
-		case 3:
-			Color = "PINK";
-			break;
-		case 4:
-			Color = "GREEN";
-			break;
-		}
-		String result = "FLIP" + ";" + Integer.toString(CardNum) + ";" + Color;
-		return result;
-	}
+   }
+   
+   // 서버에서 받아온 값 변화
+   public void ChangeColor(int Cardnum, String Color) {
+      switch (Color) {
+      case  "BROWN":
+         game.CardArray[Cardnum].setIcon(new ImageIcon("../FlipCard/Img/Cardusr1.png"));
+         break;
+      case "BLUE":
+         game.CardArray[Cardnum].setIcon(new ImageIcon("../FlipCard/Img/Cardusr2.png"));
+         break;
+      case "PINK":
+         game.CardArray[Cardnum].setIcon(new ImageIcon("../FlipCard/Img/Cardusr3.png"));
+         break;
+      case "GREEN":
+         game.CardArray[Cardnum].setIcon(new ImageIcon("../FlipCard/Img/Cardusr4.png"));
+         break;
+      default:
+         game.CardArray[Cardnum].setIcon(new ImageIcon("../FlipCard/Img/Cardfirst.png"));
+         break;
+      }
+   }
+   
+   public void Isregame() {
+         int result = JOptionPane.showConfirmDialog(game, "계속하시겠습니까?", "한판 더?", JOptionPane.YES_NO_OPTION);
+         if (result == JOptionPane.YES_OPTION) {
+            CMDummyEvent due = new CMDummyEvent();  //서버에 보내는
+            due.setDummyInfo("RESTART");
+            m_client.m_clientStub.send(due, "SERVER");
+         } 
+         else {
+            if(m_client.m_clientStub.logoutCM()) {
+                  try {
+                      Thread.sleep(500);
+                   } catch (InterruptedException e1) {
+                      // TODO Auto-generated catch block
+                      e1.printStackTrace();
+                   }
+
+            };
+            System.exit(0);
+         }
+      }
 
 }
